@@ -10,7 +10,7 @@
                             <span>功能菜单</span>
                         </template>
                         <el-menu-item-group>
-                            <el-menu-item index="1-1" @click="goUserManage" >用户管理</el-menu-item>
+                            <el-menu-item v-if="userInfo.role === 'administrator'" index="1-1" @click="goUserManage" >用户管理</el-menu-item>
                         </el-menu-item-group>
                     </el-submenu>
                     <el-submenu index="2" :class="{'blue-aside': isBlue, 'yellow-aside': isYellow}">
@@ -43,7 +43,21 @@
                             <h2>欢迎, {{ userInfo.username }}</h2>
                             <div class="container-img">
                                 <img class="headshot" :src="userAvatarUrl" />
+
                             </div>
+                            <el-upload
+                                ref="upload"
+                                :action="uploadUrl"
+                                :data="uploadData"
+                                :show-file-list="true"
+                                :auto-upload="false"
+                                :before-upload="beforeAvatarUpload"
+                                :on-success="handleAvatarSuccess"
+                                :on-error="handleAvatarError"
+                                :on-change="handleAvatarChange">
+                                <el-button  @click="selectFile">上传</el-button>
+                            </el-upload>
+                            <el-button @click="uploadTri">确认</el-button>
                         </div>
                         <div class="part-right">
                             <el-calendar class="calendar" v-model="value" v-if="showCalendar"></el-calendar>
@@ -53,7 +67,7 @@
                             </el-table>
                         </div>
                     </div>
-                    <router-view v-show="!showFront"></router-view>
+                    <router-view :userInfo="userInfo" v-show="!showFront"></router-view>
                 </el-main>
             </el-container>
         </el-container>
@@ -62,11 +76,15 @@
 <script>
 
 import router from "@/router";
-
+import { EventBus } from '../eventBus';
 export default {
     data(){
         return{
-
+            uploadData: {
+                userId: null
+            },
+            avatarUrl: '',
+            uploadUrl: 'http://localhost:8090/upload/avatar',
             showFront: true ,// 默认显示
 
             changeInfo:"个人信息",
@@ -84,11 +102,20 @@ export default {
     created() {
         if(this.$route.query && this.$route.query.userInfo){
             this.userInfo = JSON.parse(this.$route.query.userInfo)
+
             this.getAvatar()
             this.parseUserInfo()
+            this.uploadData.userId = this.userInfo.userId
         }
     },
     methods:{
+        uploadTri(){
+            // this.uploadData.userId = 10;
+            // 上传图片
+            this.$refs.upload.submit();
+
+
+        },
         goFrontPage(){
 
             this.showFront = true;
@@ -117,7 +144,7 @@ export default {
         } ,
 
         getAvatar() {
-            this.userAvatarUrl = `http://localhost:8090/user/avatar/${this.userInfo.userId}`;
+            this.userAvatarUrl = `http://localhost:8090/user/avatar/${this.userInfo.userId}?${new Date().getTime()}`;
         },
         goUserManage(){
             this.showFront = false;
@@ -141,7 +168,36 @@ export default {
         yellowStyle(){
             this.isBlue = false;
             this.isYellow = true;
-        }
+        },
+        selectFile() {
+            this.$refs.upload.$refs.input.click();
+        },
+        handleAvatarChange(file, fileList) {
+            this.avatarUrl = URL.createObjectURL(file.raw);
+        },
+        beforeAvatarUpload(file) {
+            const isJPG = file.type === 'image/jpeg';
+            const isPNG = file.type === 'image/png';
+            const isLt2M = file.size / 1024 / 1024 < 2;
+
+            if (!isJPG && !isPNG) {
+                this.$message.error('上传头像图片只能是 JPG 或 PNG 格式!');
+                return false;
+            }
+            if (!isLt2M) {
+                this.$message.error('上传头像图片大小不能超过 2MB!');
+                return false;
+            }
+            return true;
+        },
+        handleAvatarSuccess(response, file, fileList) {
+            this.avatarUrl = response.url;
+            this.getAvatar();
+            // this.$message.success('上传成功');
+        },
+        handleAvatarError(err, file, fileList) {
+            this.$message.error('上传失败');
+        },
     }
 
 }

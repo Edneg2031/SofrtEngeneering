@@ -25,6 +25,7 @@ public class UserController {
     // 进行注册
     @PostMapping("/register")
     public ResponseEntity<Long> register(@RequestBody User user) {
+        System.out.println(user);
         try {
             User registeredUser = userService.register(user);
             System.out.println(registeredUser);

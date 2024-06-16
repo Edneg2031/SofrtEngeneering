@@ -19,7 +19,7 @@ public class UserServiceImpl implements UserService {
         if (userMapper.findByUsername(user.getUsername()) != null) {
             throw new RuntimeException("Username already exists");
         }
-        user.setRole("user");
+        if(user.getRole()!=null)user.setRole("user");
         user.setCreateTime(LocalDateTime.now());
         user.setBalance(0.0);
         userMapper.insertUser(user);

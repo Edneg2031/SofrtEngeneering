@@ -47,7 +47,9 @@ public class FileUploadController {
                 file = avatarLocation.resolve(userId + ".png");
             }
             if (!Files.exists(file)) {
-                return ResponseEntity.notFound().build();
+                // 如果没有就用默认图片
+                file = avatarLocation.resolve( "default.jpg");
+
             }
             Resource resource = new UrlResource(file.toUri());
             return ResponseEntity.ok()

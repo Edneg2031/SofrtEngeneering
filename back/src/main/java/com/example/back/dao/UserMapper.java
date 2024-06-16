@@ -33,7 +33,7 @@ public interface UserMapper {
     User findById(long id);
     @Update("UPDATE user SET password = #{password} WHERE user_id = #{userId}")
     void updatePassword(@Param("userId") Long userId, @Param("password") String password);
-    @Update("UPDATE user SET  username = #{username}, password = #{password}, email = #{email}, role = #{role}, create_time = #{createTime}  WHERE user_id = #{userId}")
+    @Update("UPDATE user SET  username = #{username}, password = #{password}, email = #{email}, role = #{role}, create_time = #{createTime} , balance = #{balance} WHERE user_id = #{userId}")
     void updateUser(User user);
 
     @Insert("INSERT INTO user(username, password, email, role, create_time, balance) VALUES(#{username}, #{password}, #{email}, #{role}, #{createTime}, #{balance})")

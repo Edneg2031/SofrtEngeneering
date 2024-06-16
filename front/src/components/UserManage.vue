@@ -69,12 +69,15 @@
                 <el-form-item label="邮箱" prop="email">
                     <el-input type="text" v-model="form.email" placeholder="邮箱"></el-input>
                 </el-form-item>
-                <el-form-item label="角色" prop="address">
-                    <el-input type="text" v-model="form.role" placeholder="角色"></el-input>
+                <el-form-item v-if="!isAdd" label="角色" prop="role">
+                    <el-radio-group v-model="form.role">
+                        <el-radio label="administrator">Administrator</el-radio>
+                        <el-radio label="user">User</el-radio>
+                    </el-radio-group>
                 </el-form-item>
-                <el-form-item label="时间" prop="zip">
-                    <el-input type="text" v-model="form.createTime" placeholder="时间"></el-input>
-                </el-form-item>
+<!--                <el-form-item label="时间" prop="zip">-->
+<!--                    <el-input type="text" v-model="form.createTime" placeholder="时间"></el-input>-->
+<!--                </el-form-item>-->
                 <el-form-item label="余额" prop="zip">
                     <el-input type="text" v-model="form.balance" placeholder="余额"></el-input>
                 </el-form-item>
@@ -98,7 +101,7 @@ export default {
             // 获取用户列表数据,存放到userList中,查询条数放到total中
             userList: [],
             total: 0,
-
+            isAdd:false,
             // 弹出层信息
             title:'',       // 标题
             type:0,         // 0表示新增，1表示修改
@@ -116,23 +119,31 @@ export default {
 
         }
     },
+    props: {
+        userInfo: {
+            type: Object,
+            required: true
+        }
+    },
     created() {
         // this.getUserList()
         this.getUserInfoListByPage(1)
     },
     methods: {
+
         // 获取用户列表数据（getUserList）
-        async getUserList() {
-            this.userList = [{user_id:1,username:"kobe",password:"123", email:"kobe@qq.com",role:"user",  create_time:"2024-05-30T19:20:07",balance:10 }]
-        },
-        getUserInfoListByPage(page=1){
+        // async getUserList() {
+        //     this.userList = [{user_id:1,username:"kobe",password:"123", email:"kobe@qq.com",role:"user",  create_time:"2024-05-30T19:20:07",balance:10 }]
+        // },
+        async getUserInfoListByPage(page=1){
             this.queryParams.page = Number(page)
             this.queryParams.name = this.queryParams.name.toString(); // 将name参数转换为字符串类型
             this.queryParams.size = Number(this.queryParams.size)
+
             user.getUserInfoListByPage(this.queryParams)
                 .then((res)=>{
                     // 获取查询到的数据
-                    console.log(res.data.records)
+
                     this.userList  = res.data.records
                     this.total = res.data.total
                 }).catch(e=>{
@@ -159,11 +170,14 @@ export default {
         // 操作的逻辑
         handleAdd(){
             this.emptyForm()
+            this.isAdd = true;
             this.type = 0;
             this.title="新增用户"
             this.open=true
+
         },
         handleUpdate(data) {
+            this.isAdd = false;
             // 通过表单获取用户的信息
             this.type = 1
             this.title = "修改用户"
@@ -175,14 +189,20 @@ export default {
             this.form.role = data.role
             this.form.createTime  = data.createTime
             this.form.balance = data.balance
+
         },
         handleDelete(row) {
+            if(this.userInfo.userId === this.form.userId){
+                this.$message.error("无法删除自己")
+                return ;
+            }
             this.$confirm('此操作将永久删除该用户, 是否继续?', '提示', {
                 confirmButtonText: '确定',
                 cancelButtonText: '取消',
                 type: 'warning'
             }).then(() => {
-                user.deleteUserInfo(row.id)
+                const userId = Number(row.userId); // 将字符串类型转换为数值类型
+                user.deleteUserInfo(userId)
                     .then(response => {
                         this.$message({
                             type: 'success',
@@ -209,20 +229,24 @@ export default {
             // 0 表示新增操作
             if(this.type === 0){
                 // 进行添加
+                console.log(this.form)
                 user.addUserInfo(this.form)
                     .then(response => {
-                        console.log('添加成功:', response);
                         this.$message.success('添加成功');
+                        this.getUserInfoListByPage(this.queryParams.page)
                     })
                     .catch(error => {
                         console.error('添加失败:', error);
                         this.$message.error('添加失败');
+
                     });
             }else{
+
                 user.updateUserInfo(this.form)
                     .then(response => {
                         console.log('修改成功:', response);
                         this.$message.success('修改成功');
+                        this.getUserInfoListByPage(this.queryParams.page)
                     })
                     .catch(error => {
                         console.error('修改失败:', error);
@@ -231,7 +255,7 @@ export default {
             }
             this.open = false;
             this.emptyForm()
-            this.getUserInfoListByPage(this.queryParams.page)
+            // this.getUserInfoListByPage(this.queryParams.page)
         },
         cancel(){
             this.open =false

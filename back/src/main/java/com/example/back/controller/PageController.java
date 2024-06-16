@@ -32,7 +32,6 @@ public class PageController {
             total = userMapper.getUserCount();
             userInfos = userMapper.getUserListByPage(start, size);
         }else{
-            System.out.println("进入了有name的时候");
             total  = userMapper.countUserListByName(name);
 
             userInfos = userMapper.getUserListByName(start, size, name);
