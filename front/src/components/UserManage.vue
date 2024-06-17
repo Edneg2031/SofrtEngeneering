@@ -135,21 +135,39 @@ export default {
         // async getUserList() {
         //     this.userList = [{user_id:1,username:"kobe",password:"123", email:"kobe@qq.com",role:"user",  create_time:"2024-05-30T19:20:07",balance:10 }]
         // },
-        async getUserInfoListByPage(page=1){
-            this.queryParams.page = Number(page)
-            this.queryParams.name = this.queryParams.name.toString(); // 将name参数转换为字符串类型
-            this.queryParams.size = Number(this.queryParams.size)
+        // async getUserInfoListByPage(page=1){
+        //     this.queryParams.page = Number(page)
+        //     this.queryParams.name = this.queryParams.name.toString(); // 将name参数转换为字符串类型
+        //     this.queryParams.size = Number(this.queryParams.size)
+        //
+        //     user.getUserInfoListByPage(this.queryParams)
+        //         .then((res)=>{
+        //             // 获取查询到的数据
+        //
+        //             this.userList  = res.data.records
+        //             this.total = res.data.total
+        //         }).catch(e=>{
+        //         console.log(e)
+        //     })
+        //
+        // },
+        async getUserInfoListByPage(page = 1, stayOnCurrentPage = false) {
+            this.queryParams.page = Number(page);
+            this.queryParams.name = this.queryParams.name.toString(); // Convert name parameter to string type
+            this.queryParams.size = Number(this.queryParams.size);
 
-            user.getUserInfoListByPage(this.queryParams)
-                .then((res)=>{
-                    // 获取查询到的数据
+            try {
+                const res = await user.getUserInfoListByPage(this.queryParams);
+                this.userList = res.data.records;
+                this.total = res.data.total;
 
-                    this.userList  = res.data.records
-                    this.total = res.data.total
-                }).catch(e=>{
-                console.log(e)
-            })
-
+                if (this.userList.length === 0 && this.queryParams.page > 1 && !stayOnCurrentPage) {
+                    // If the current page becomes empty, go to the previous page
+                    this.getUserInfoListByPage(this.queryParams.page - 1);
+                }
+            } catch (e) {
+                console.log(e);
+            }
         },
         // 更改每一页的大小后要让其到第一个界面
         sizeChange(e){
@@ -192,31 +210,37 @@ export default {
 
         },
         handleDelete(row) {
-            if(this.userInfo.userId === this.form.userId){
-                this.$message.error("无法删除自己")
-                return ;
+            if (this.userInfo.userId === row.userId) {
+                this.$message.error("无法删除自己");
+                return;
             }
             this.$confirm('此操作将永久删除该用户, 是否继续?', '提示', {
                 confirmButtonText: '确定',
                 cancelButtonText: '取消',
                 type: 'warning'
-            }).then(() => {
-                const userId = Number(row.userId); // 将字符串类型转换为数值类型
-                user.deleteUserInfo(userId)
-                    .then(response => {
-                        this.$message({
-                            type: 'success',
-                            message: '删除成功!'
-                        });
-                        // 从 userList 中删除该用户
-                        this.getUserInfoListByPage(this.queryParams.page)
-                    })
-                    .catch(error => {
-                        this.$message({
-                            type: 'error',
-                            message: '删除失败!'
-                        });
+            }).then(async () => {
+                const userId = Number(row.userId); // Convert string type to number type
+                try {
+                    await user.deleteUserInfo(userId);
+                    this.$message({
+                        type: 'success',
+                        message: '删除成功!'
                     });
+                    // Check if we need to navigate to the previous page
+                    const currentPage = this.queryParams.page;
+                    const remainingUsers = this.userList.length - 1; // remaining users after deletion
+
+                    if (remainingUsers === 0 && currentPage > 1) {
+                        this.getUserInfoListByPage(currentPage - 1);
+                    } else {
+                        this.getUserInfoListByPage(currentPage, true);
+                    }
+                } catch (error) {
+                    this.$message({
+                        type: 'error',
+                        message: '删除失败!'
+                    });
+                }
             }).catch(() => {
                 this.$message({
                     type: 'info',
