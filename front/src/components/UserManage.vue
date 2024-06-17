@@ -19,11 +19,19 @@
                             icon="el-icon-search"
                             @click="getUserInfoListByPage(1)"
                         ></el-button>
+
+
                         </el-input>
                 </el-col>
                 <!--------------------------- 添加用户 -------------------------------->
-                <el-col :span="4"
-                ><el-button type="primary" @click="handleAdd">添加用户</el-button>
+                <el-col :span="10" >
+                    <el-select v-model="selectedLanguage" placeholder="选择语言" style="width: 120px; margin-left: 10px;">
+                        <el-option label="English" value="en-US"></el-option>
+                        <el-option label="中文" value="zh-CN"></el-option>
+                    </el-select>
+
+                    <el-button  type="primary" @click="startSpeechRecognition">🎤</el-button>
+                    <el-button type="primary" @click="handleAdd">添加用户</el-button>
                 </el-col>
             </el-row>
 
@@ -116,7 +124,7 @@ export default {
                 createTime:'',
                 balance:''
             },
-
+            selectedLanguage: 'en-US' // Default language
         }
     },
     props: {
@@ -162,7 +170,6 @@ export default {
                 this.total = res.data.total;
 
                 if (this.userList.length === 0 && this.queryParams.page > 1 && !stayOnCurrentPage) {
-                    // If the current page becomes empty, go to the previous page
                     this.getUserInfoListByPage(this.queryParams.page - 1);
                 }
             } catch (e) {
@@ -285,6 +292,35 @@ export default {
             this.open =false
             this.emptyForm()
         },
+        startSpeechRecognition() {
+            if (!('webkitSpeechRecognition' in window)) {
+                this.$message.error('Your browser does not support speech recognition. Please use Google Chrome.');
+                return;
+            }
+
+            const recognition = new webkitSpeechRecognition();
+            recognition.lang = this.selectedLanguage;
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            recognition.start();
+
+            recognition.onresult = (event) => {
+                let speechResult = event.results[0][0].transcript.toLowerCase();
+                speechResult = speechResult.replace(/[。，！.,/#!$%^&*;:{}=\-_`~()]/g, ''); // Remove punctuation
+                this.queryParams.name = speechResult;
+                this.getUserInfoListByPage(1); // Trigger the search with the recognized speech text
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Speech recognition error', event);
+                this.$message.error('Speech recognition error. Please try again.');
+            };
+
+            recognition.onend = () => {
+                console.log('Speech recognition service disconnected');
+            };
+        }
 
     },
 }
